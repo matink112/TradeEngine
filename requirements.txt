@@ -3,3 +3,5 @@ Django==4.0.6
 mysqlclient==2.1.1
 sqlparse==0.4.2
 python-dotenv==0.20.0
+djangorestframework==3.13.1
+
