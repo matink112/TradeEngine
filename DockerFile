@@ -4,8 +4,8 @@ FROM python:3.10-alpine3.16
 
 WORKDIR /src
 
-COPY LimitOrderBook LimitOrderBook
-COPY manage.py .
+#COPY LimitOrderBook LimitOrderBook
+#COPY manage.py .
 COPY requirements.txt .
 
 RUN apk update \
@@ -14,7 +14,5 @@ RUN apk update \
     && python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
-EXPOSE 8000
-
-CMD ./manage.py runserver
+#CMD ./manage.py runserver
 

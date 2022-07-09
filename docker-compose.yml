@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  api:
+    depends_on:
+      - db
+      - redis
+#    build: .
+    image: orderbook
+    container_name: orderbook_api
+    ports:
+      - "8000:8000"
+    working_dir: /src
+    volumes:
+      - .:/src
+    command: sh -c "./manage.py runserver 0.0.0.0:8000"
+
+  redis:
+    container_name: redis
+    image: "redis:alpine"
+    ports:
+      - "63791:6379"
+
+  db:
+    container_name: mysql
+    image: "mysql:8"
+    restart: always
+    environment:
+      MYSQL_DATABASE: "orderbook"
+      MYSQL_ROOT_PASSWORD: "ZfgNZG6=rz)kp\_w"
+      MYSQL_USER: "admin"
+      MYSQL_PASSWORD: "ZfgNZG6"
+    ports:
+      - "33061:3306"
+    volumes:
+      - db
+
+volumes:
+  db:
+  static:
