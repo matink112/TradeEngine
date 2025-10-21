@@ -1,8 +1,8 @@
 from decimal import Decimal
 
-from apps.orderbook.exceptions import OrderTypeError, OrderNotFoundError, QuantityError
-from apps.orderbook.ordertree import OrderTree
-from apps.orderbook.trade import TradeDataFrame
+from src.exceptions import OrderTypeError, OrderNotFoundError, QuantityError
+from src.ordertree import OrderTree
+from src.trade import TradeDataFrame
 
 
 class OrderBook(object):

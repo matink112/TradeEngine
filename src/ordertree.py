@@ -1,7 +1,7 @@
 from sortedcontainers import SortedDict
 
-from apps.orderbook.order import Order
-from apps.orderbook.orderlist import OrderList
+from src.order import Order
+from src.orderlist import OrderList
 
 
 class OrderTree:
