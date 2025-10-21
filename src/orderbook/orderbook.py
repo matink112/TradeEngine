@@ -199,6 +199,8 @@ class OrderBook:
     def _prepare_quote_types(quote: dict[str, Any]) -> None:
         quote["quantity"] = Decimal(str(quote["quantity"]))
         if quote["type"] == ORDER_TYPE_LIMIT:
+            if quote.get("price") is None:
+                raise OrderTypeError("Price is required for limit orders")
             quote["price"] = Decimal(str(quote["price"]))
 
     def _update_timestamp(self, data: dict[str, Any], from_data: bool) -> None:
