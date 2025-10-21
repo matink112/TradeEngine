@@ -1,12 +1,27 @@
 from decimal import Decimal
+from typing import Any, Literal, Optional
 
-from src.exceptions import OrderTypeError, OrderNotFoundError, QuantityError
+from src.exceptions import OrderNotFoundError, OrderTypeError, QuantityError
 from src.ordertree import OrderTree
 from src.trade import TradeDataFrame
 
+Side = Literal["bid", "ask"]
 
-class OrderBook(object):
-    def __init__(self, tick_size=0.0001, market_name=None):
+
+# Constants
+SIDE_BID: Side = "bid"
+SIDE_ASK: Side = "ask"
+ORDER_TYPE_LIMIT = "limit"
+ORDER_TYPE_MARKET = "market"
+VALID_SIDES = {SIDE_BID, SIDE_ASK}
+VALID_ORDER_TYPES = {ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET}
+DEFAULT_TICK_SIZE = 0.0001
+
+
+class OrderBook:
+    def __init__(
+        self, tick_size: float = DEFAULT_TICK_SIZE, market_name: Optional[str] = None
+    ):
         self.trade_df = TradeDataFrame(self)
         self.bids = OrderTree()
         self.asks = OrderTree()
@@ -19,234 +34,322 @@ class OrderBook(object):
         self.is_closed = False
         self.closed_reason = None
 
-    def update_time(self):
+    def update_time(self) -> None:
         self.time += 1
 
-    def process_order(self, data, from_data, verbose):
-        order_type = data['type']
-        order_in_book = None
-
+    def process_order(
+        self, data: dict[str, Any], from_data: bool, verbose: bool
+    ) -> tuple[list[dict[str, Any]], Optional[dict[str, Any]]]:
+        self._validate_order(data)
         self._prepare_quote_types(data)
+        self._update_timestamp(data, from_data)
 
-        if data['quantity'] <= 0:
-            raise QuantityError(f'process_order() given order of quantity <= 0 with data: {data}')
-
-        if order_type != 'limit' and order_type != 'market':
-            raise OrderTypeError(f"order_type for process_order() is neither 'market' or 'limit' with data: {data}")
-
-        if from_data:
-            self.time = data['timestamp']
-        else:
-            self.update_time()
-            data['timestamp'] = self.time
         if not from_data:
             self.next_order_id += 1
-        if order_type == 'market':
-            trades = self.process_market_order(data, verbose)
-        elif order_type == 'limit':
-            trades, order_in_book = self.process_limit_order(data, from_data, verbose)
+
+        order_type = data["type"]
+        if order_type == ORDER_TYPE_MARKET:
+            return self.process_market_order(data, verbose), None
+
+        return self.process_limit_order(data, from_data, verbose)
+
+    def process_market_order(
+        self, data: dict[str, Any], verbose: bool
+    ) -> list[dict[str, Any]]:
+        self._validate_side(data["side"])
+
+        quantity_to_trade = data["quantity"]
+        side = data["side"]
+
+        return (
+            self._execute_market_order_against_asks(data, quantity_to_trade, verbose)
+            if side == SIDE_BID
+            else self._execute_market_order_against_bids(
+                data, quantity_to_trade, verbose
+            )
+        )
+
+    def process_limit_order(
+        self, data: dict[str, Any], from_data: bool, verbose: bool
+    ) -> tuple[list[dict[str, Any]], Optional[dict[str, Any]]]:
+        self._validate_side(data["side"])
+
+        quantity_to_trade = data["quantity"]
+        side = data["side"]
+        price = data["price"]
+
+        if side == SIDE_BID:
+            quantity_to_trade, trades = self._match_bid_order(
+                data, price, quantity_to_trade, verbose
+            )
+        else:
+            quantity_to_trade, trades = self._match_ask_order(
+                data, price, quantity_to_trade, verbose
+            )
+
+        order_in_book = self._add_remaining_to_book(
+            data, quantity_to_trade, side, from_data
+        )
         return trades, order_in_book
 
-    def process_order_list(self, side, order_list, quantity_still_to_trade, data, verbose):
-        """
-        Takes an OrderList (stack of orders at one price) and an incoming order and matches
-        appropriate trades given the order's quantity.
-        """
-        trades = []
-        quantity_to_trade = quantity_still_to_trade
-        while len(order_list) > 0 and quantity_to_trade > 0:
-            head_order = order_list.get_head_order()
-            traded_price = head_order.price
-            counter_party = head_order.trade_id
-            party_wage = head_order.wage
-            new_book_quantity = None
-            if quantity_to_trade < head_order.quantity:
-                traded_quantity = quantity_to_trade
-                # Do the transaction
-                new_book_quantity = head_order.quantity - quantity_to_trade
-                head_order.update_quantity(new_book_quantity, head_order.timestamp)
-                quantity_to_trade = 0
-            elif quantity_to_trade == head_order.quantity:
-                traded_quantity = quantity_to_trade
-                if side == 'bid':
-                    self.bids.remove_order_by_id(head_order.order_id)
-                else:
-                    self.asks.remove_order_by_id(head_order.order_id)
-                quantity_to_trade = 0
-            else:  # quantity to trade is larger than the head order
-                traded_quantity = head_order.quantity
-                if side == 'bid':
-                    self.bids.remove_order_by_id(head_order.order_id)
-                else:
-                    self.asks.remove_order_by_id(head_order.order_id)
-                quantity_to_trade -= traded_quantity
-            if verbose:
-                print((f"TRADE: Time - {self.time}, Price - {traded_price}, Quantity - {traded_quantity}, \
-                        TradeID - {counter_party}, Matching TradeID - {data['trade_id']}"))
+    def cancel_order(
+        self, side: str, order_id: str, time: Optional[int] = None
+    ) -> None:
+        self._validate_side(side)
+        self._update_time_if_needed(time)
 
-            transaction_record = {
-                'timestamp': self.time,
-                'price': traded_price,
-                'quantity': traded_quantity,
-                'time': self.time,
-                'party1': {
-                    'trade_id': counter_party,
-                    'side': side,
-                    'order_id': head_order.order_id,
-                    'new_book_quantity': new_book_quantity,
-                    'wage': party_wage,
-                },
-                'party2': {
-                    'trade_id': data['trade_id'],
-                    'side': 'ask' if side == 'bid' else 'bid',
-                    'order_id': data['order_id'],
-                    'new_book_quantity': None,
-                    'wage': data['wage'],
-                }}
+        order_tree = self._get_order_tree(side)
+        if not order_tree.order_exists(order_id):
+            raise OrderNotFoundError(
+                f"Order with id: {order_id} and side: {side} not found"
+            )
 
-            self.trade_df.append(transaction_record['price'], transaction_record['quantity'], side)
-            trades.append(transaction_record)
-        return quantity_to_trade, trades
+        order_tree.remove_order_by_id(order_id)
 
-    def process_market_order(self, data, verbose):
-        trades = []
-        quantity_to_trade = data['quantity']
-        side = data['side']
+    def modify_order(
+        self, order_id: str, order_update: dict[str, Any], time: Optional[int] = None
+    ) -> None:
+        self._validate_side(order_update["side"])
+        self._update_time_if_needed(time)
 
-        if side != 'ask' and side != 'bid':
-            raise OrderTypeError(f'process_market_order() received neither "bid" nor "ask" with data: {data}')
+        order_update["order_id"] = order_id
+        order_update["timestamp"] = self.time
 
-        if side == 'bid':
-            while quantity_to_trade > 0 and self.asks:
-                best_price_asks = self.asks.min_price_list()
-                quantity_to_trade, new_trades = self.process_order_list('ask', best_price_asks, quantity_to_trade,
-                                                                        data, verbose)
-                trades += new_trades
-        elif side == 'ask':
-            while quantity_to_trade > 0 and self.bids:
-                best_price_bids = self.bids.max_price_list()
-                quantity_to_trade, new_trades = self.process_order_list('bid', best_price_bids, quantity_to_trade,
-                                                                        data, verbose)
-                trades += new_trades
-        return trades
+        order_tree = self._get_order_tree(order_update["side"])
+        if not order_tree.order_exists(order_id):
+            raise OrderNotFoundError(
+                f"Order with id: {order_id} and side: {order_update['side']} not found"
+            )
 
-    def process_limit_order(self, data, from_data, verbose):
-        order_in_book = None
-        trades = []
-        quantity_to_trade = data['quantity']
-        side = data['side']
-        price = data['price']
+        order_tree.update_order(order_update)
 
-        if side != 'ask' and side != 'bid':
-            raise OrderTypeError(f'process_limit_order() received neither "bid" nor "ask" with data: {data}')
+    def get_volume_at_price(self, side: str, price: float) -> Decimal:
+        self._validate_side(side)
 
-        if side == 'bid':
-            while self.asks and price >= self.asks.min_price() and quantity_to_trade > 0:
-                best_price_asks = self.asks.min_price_list()
-                quantity_to_trade, new_trades = self.process_order_list('ask', best_price_asks, quantity_to_trade,
-                                                                        data, verbose)
-                trades += new_trades
+        # price = Decimal(str(price))
+        order_tree = self._get_order_tree(side)
 
-        elif side == 'ask':
-            while self.bids and price <= self.bids.max_price() and quantity_to_trade > 0:
-                best_price_bids = self.bids.max_price_list()
-                quantity_to_trade, new_trades = self.process_order_list('bid', best_price_bids, quantity_to_trade,
-                                                                        data, verbose)
-                trades += new_trades
+        if order_tree.price_exists(price):
+            return order_tree.get_price(price).volume
+        return Decimal(0)
 
-        # If volume remains, need to update the book with new quantity
-        if quantity_to_trade > 0:
-            if not from_data:
-                data['order_id'] = self.next_order_id
-            data['quantity'] = quantity_to_trade
-
-            if side == 'ask':
-                self.asks.insert_order(data)
-            else:
-                self.bids.insert_order(data)
-
-            order_in_book = data
-        return trades, order_in_book
-
-    def cancel_order(self, side, order_id, time=None):
-        if side != 'ask' and side != 'bid':
-            raise OrderTypeError(f'cancel_order() received neither "bid" nor \
-            "ask" with orderid: {order_id}, side: {side}')
-
-        if time:
-            self.time = time
-        else:
-            self.update_time()
-
-        if side == 'bid' and self.bids.order_exists(order_id):
-            self.bids.remove_order_by_id(order_id)
-        elif side == 'ask' and self.asks.order_exists(order_id):
-            self.asks.remove_order_by_id(order_id)
-        else:
-            raise OrderNotFoundError(f'in cancel_order() order with id: {order_id} and side: {side} not found')
-
-    def _prepare_quote_types(self, quote):
-        quote['quantity'] = Decimal(str(quote['quantity']))
-        quote['price'] = Decimal(str(quote['price']))
-
-    def modify_order(self, order_id, order_update, time=None):
-        if time:
-            self.time = time
-        else:
-            self.update_time()
-
-        side = order_update['side']
-        order_update['order_id'] = order_id
-        order_update['timestamp'] = self.time
-
-        if side != 'ask' and side != 'bid':
-            raise OrderTypeError(f'modify_order() received neither "bid" nor \
-            "ask" with orderid: {order_id}, side: {side}')
-
-        if side == 'bid' and self.bids.order_exists(order_update['order_id']):
-            self.bids.update_order(order_update)
-        elif side == 'ask' and self.asks.order_exists(order_update['order_id']):
-            self.asks.update_order(order_update)
-        else:
-            raise OrderNotFoundError(f'in modify_order() order with id: {order_id} and side: {side} not found')
-
-    def get_volume_at_price(self, side, price):
-        if side != 'ask' and side != 'bid':
-            raise OrderTypeError(f'get_volume_at_price() received neither "bid" nor \
-            "ask" with side: {side}')
-
-        price = Decimal(price)
-        volume = 0
-        if side == 'bid':
-            if self.bids.price_exists(price):
-                volume = self.bids.get_price(price).volume
-            return volume
-
-        elif side == 'ask':
-            if self.asks.price_exists(price):
-                volume = self.asks.get_price(price).volume
-            return volume
-
-    def get_best_bid(self):
+    def get_best_bid(self) -> Optional[Decimal]:
         return self.bids.max_price()
 
-    def get_worst_bid(self):
+    def get_worst_bid(self) -> Optional[Decimal]:
         return self.bids.min_price()
 
-    def get_best_ask(self):
+    def get_best_ask(self) -> Optional[Decimal]:
         return self.asks.min_price()
 
-    def get_worst_ask(self):
+    def get_worst_ask(self) -> Optional[Decimal]:
         return self.asks.max_price()
 
-    def tape_dump(self, filename, filemode, tapemode):
-        # TODO: dump dataframe
-        # dumpfile = open(filename, filemode)
-        # for tapeitem in self.tape:
-        #     dumpfile.write('Time: %s, Price: %s, Quantity: %s\n' % (tapeitem['time'],
-        #                                                             tapeitem['price'],
-        #                                                             tapeitem['quantity']))
-        # dumpfile.close()
-        # if tapemode == 'wipe':
-        #     self.tape = []
-        pass
+    @staticmethod
+    def _validate_order(data: dict[str, Any]) -> None:
+        if data["quantity"] <= 0:
+            raise QuantityError(f"Order quantity must be > 0, got: {data['quantity']}")
+
+        if data["type"] not in VALID_ORDER_TYPES:
+            raise OrderTypeError(
+                f"Order type must be one of {VALID_ORDER_TYPES}, got: {data['type']}"
+            )
+
+    @staticmethod
+    def _validate_side(side: str) -> None:
+        if side not in VALID_SIDES:
+            raise OrderTypeError(f"Side must be one of {VALID_SIDES}, got: {side}")
+
+    @staticmethod
+    def _prepare_quote_types(quote: dict[str, Any]) -> None:
+        quote["quantity"] = Decimal(str(quote["quantity"]))
+        quote["price"] = Decimal(str(quote["price"]))
+
+    def _update_timestamp(self, data: dict[str, Any], from_data: bool) -> None:
+        if from_data:
+            self.time = data["timestamp"]
+        else:
+            self.update_time()
+            data["timestamp"] = self.time
+
+    def _update_time_if_needed(self, time: Optional[int]) -> None:
+        if time:
+            self.time = time
+        else:
+            self.update_time()
+
+    def _get_order_tree(self, side: str) -> OrderTree:
+        return self.bids if side == SIDE_BID else self.asks
+
+    @staticmethod
+    def _get_opposite_side(side: str) -> str:
+        return SIDE_ASK if side == SIDE_BID else SIDE_BID
+
+    def _execute_market_order_against_asks(
+        self, data: dict[str, Any], quantity_to_trade: Decimal, verbose: bool
+    ) -> list[dict[str, Any]]:
+        trades = []
+        while quantity_to_trade > 0 and self.asks:
+            best_price_asks = self.asks.min_price_list()
+            quantity_to_trade, new_trades = self._process_order_list(
+                SIDE_ASK, best_price_asks, quantity_to_trade, data, verbose
+            )
+            trades.extend(new_trades)
+        return trades
+
+    def _execute_market_order_against_bids(
+        self, data: dict[str, Any], quantity_to_trade: Decimal, verbose: bool
+    ) -> list[dict[str, Any]]:
+        trades = []
+        while quantity_to_trade > 0 and self.bids:
+            best_price_bids = self.bids.max_price_list()
+            quantity_to_trade, new_trades = self._process_order_list(
+                SIDE_BID, best_price_bids, quantity_to_trade, data, verbose
+            )
+            trades.extend(new_trades)
+        return trades
+
+    def _match_bid_order(
+        self,
+        data: dict[str, Any],
+        price: Decimal,
+        quantity_to_trade: Decimal,
+        verbose: bool,
+    ) -> tuple[Decimal, list[dict[str, Any]]]:
+        trades = []
+        while self.asks and price >= self.asks.min_price() and quantity_to_trade > 0:
+            best_price_asks = self.asks.min_price_list()
+            quantity_to_trade, new_trades = self._process_order_list(
+                SIDE_ASK, best_price_asks, quantity_to_trade, data, verbose
+            )
+            trades.extend(new_trades)
+        return quantity_to_trade, trades
+
+    def _match_ask_order(
+        self,
+        data: dict[str, Any],
+        price: Decimal,
+        quantity_to_trade: Decimal,
+        verbose: bool,
+    ) -> tuple[Decimal, list[dict[str, Any]]]:
+        trades = []
+        while self.bids and price <= self.bids.max_price() and quantity_to_trade > 0:
+            best_price_bids = self.bids.max_price_list()
+            quantity_to_trade, new_trades = self._process_order_list(
+                SIDE_BID, best_price_bids, quantity_to_trade, data, verbose
+            )
+            trades.extend(new_trades)
+        return quantity_to_trade, trades
+
+    def _add_remaining_to_book(
+        self,
+        data: dict[str, Any],
+        quantity_to_trade: Decimal,
+        side: str,
+        from_data: bool,
+    ) -> Optional[dict[str, Any]]:
+        if quantity_to_trade <= 0:
+            return None
+
+        if not from_data:
+            data["order_id"] = self.next_order_id
+
+        data["quantity"] = quantity_to_trade
+        order_tree = self._get_order_tree(side)
+        order_tree.insert_order(data)
+
+        return data
+
+    def _process_order_list(
+        self,
+        side: Side,
+        order_list: Any,
+        quantity_still_to_trade: Decimal,
+        data: dict[str, Any],
+        verbose: bool,
+    ) -> tuple[Decimal, list[dict[str, Any]]]:
+        trades = []
+        quantity_to_trade = quantity_still_to_trade
+
+        while len(order_list) > 0 and quantity_to_trade > 0:
+            head_order = order_list.get_head_order()
+            traded_quantity, new_book_quantity = self._calculate_trade_quantities(
+                quantity_to_trade, head_order
+            )
+
+            self._update_or_remove_order(
+                side, head_order, new_book_quantity
+            )
+
+            transaction = self._create_transaction_record(
+                head_order, traded_quantity, new_book_quantity, side, data
+            )
+
+            self._record_trade(transaction, side, verbose)
+            trades.append(transaction)
+
+            quantity_to_trade -= traded_quantity
+
+        return quantity_to_trade, trades
+
+    @staticmethod
+    def _calculate_trade_quantities(
+        quantity_to_trade: Decimal, head_order: Any
+    ) -> tuple[Decimal, Optional[Decimal]]:
+        if quantity_to_trade < head_order.quantity:
+            return quantity_to_trade, head_order.quantity - quantity_to_trade
+        return min(quantity_to_trade, head_order.quantity), None
+
+    def _update_or_remove_order(
+        self,
+        side: str,
+        head_order: Any,
+        new_book_quantity: Optional[Decimal],
+    ) -> None:
+        if new_book_quantity is not None:
+            head_order.update_quantity(new_book_quantity, head_order.timestamp)
+        else:
+            order_tree = self._get_order_tree(side)
+            order_tree.remove_order_by_id(head_order.order_id)
+
+    def _create_transaction_record(
+        self,
+        head_order: Any,
+        traded_quantity: Decimal,
+        new_book_quantity: Optional[Decimal],
+        side: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "timestamp": self.time,
+            "price": head_order.price,
+            "quantity": traded_quantity,
+            "time": self.time,
+            "party1": {
+                "trade_id": head_order.trade_id,
+                "side": side,
+                "order_id": head_order.order_id,
+                "new_book_quantity": new_book_quantity,
+                "wage": head_order.wage,
+            },
+            "party2": {
+                "trade_id": data["trade_id"],
+                "side": self._get_opposite_side(side),
+                "order_id": data["order_id"],
+                "new_book_quantity": None,
+                "wage": data["wage"],
+            },
+        }
+
+    def _record_trade(
+        self, transaction: dict[str, Any], side: Side, verbose: bool
+    ) -> None:
+        self.trade_df.append(transaction["price"], transaction["quantity"], side)
+
+        if verbose:
+            print(
+                f"TRADE: Time - {self.time}, Price - {transaction['price']}, "
+                f"Quantity - {transaction['quantity']}, "
+                f"TradeID - {transaction['party1']['trade_id']}, "
+                f"Matching TradeID - {transaction['party2']['trade_id']}"
+            )
