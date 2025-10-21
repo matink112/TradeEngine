@@ -2,8 +2,8 @@ from decimal import Decimal
 from typing import Any, Literal, Optional
 
 from src.exceptions import OrderNotFoundError, OrderTypeError, QuantityError
-from src.ordertree import OrderTree
-from src.trade import TradeDataFrame
+from src.orderbook.ordertree import OrderTree
+from src.orderbook.trade import TradeDataFrame
 
 Side = Literal["bid", "ask"]
 
@@ -30,7 +30,7 @@ class OrderBook:
         self.tick_size = tick_size
         self.time = 0
         self.next_order_id = 0
-        self.market_name = market_name
+        self.market_name = market_name or "UNKNOWN/PAIR"
         self.is_closed = False
         self.closed_reason = None
 
@@ -40,12 +40,14 @@ class OrderBook:
     def process_order(
         self, data: dict[str, Any], from_data: bool, verbose: bool
     ) -> tuple[list[dict[str, Any]], Optional[dict[str, Any]]]:
-        self._validate_order(data)
+        # Convert to Decimal before validation so numeric comparisons work
         self._prepare_quote_types(data)
+        self._validate_order(data)
         self._update_timestamp(data, from_data)
 
         if not from_data:
             self.next_order_id += 1
+            data["order_id"] = self.next_order_id
 
         order_type = data["type"]
         if order_type == ORDER_TYPE_MARKET:
@@ -93,7 +95,7 @@ class OrderBook:
         return trades, order_in_book
 
     def cancel_order(
-        self, side: str, order_id: str, time: Optional[int] = None
+        self, side: str, order_id: int, time: Optional[int] = None
     ) -> None:
         self._validate_side(side)
         self._update_time_if_needed(time)
@@ -107,7 +109,7 @@ class OrderBook:
         order_tree.remove_order_by_id(order_id)
 
     def modify_order(
-        self, order_id: str, order_update: dict[str, Any], time: Optional[int] = None
+        self, order_id: int, order_update: dict[str, Any], time: Optional[int] = None
     ) -> None:
         self._validate_side(order_update["side"])
         self._update_time_if_needed(time)
@@ -121,7 +123,40 @@ class OrderBook:
                 f"Order with id: {order_id} and side: {order_update['side']} not found"
             )
 
+        # ensure decimals
+        order_update["quantity"] = Decimal(str(order_update["quantity"]))
+        order_update["price"] = Decimal(str(order_update["price"]))
         order_tree.update_order(order_update)
+
+    # --- Added helper methods for API layer ---
+    def get_order(self, side: str, order_id: int) -> dict[str, Any]:
+        """Return single order data as dict or raise."""
+        self._validate_side(side)
+        tree = self._get_order_tree(side)
+        if not tree.order_exists(order_id):
+            raise OrderNotFoundError(f"Order {order_id} not found on side {side}")
+        return tree.get_order(order_id).to_dict()  # type: ignore[return-value]
+
+    def list_orders(self, side: str) -> list[dict[str, Any]]:
+        """Return all orders for the side ordered by price then time."""
+        self._validate_side(side)
+        tree = self._get_order_tree(side)
+        # Iterate prices (sorted) then each order list
+        results: list[dict[str, Any]] = []
+        for price in tree.prices:
+            order_list = tree.get_price_list(price)
+            for order in order_list:
+                results.append(order.to_dict())
+        return results
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "best_bid": self.get_best_bid(),
+            "best_ask": self.get_best_ask(),
+            "bid_volume": self.bids.volume,
+            "ask_volume": self.asks.volume,
+            "time": self.time,
+        }
 
     def get_volume_at_price(self, side: str, price: float) -> Decimal:
         self._validate_side(side)
@@ -130,7 +165,7 @@ class OrderBook:
         order_tree = self._get_order_tree(side)
 
         if order_tree.price_exists(price):
-            return order_tree.get_price(price).volume
+            return order_tree.get_price_list(price).volume
         return Decimal(0)
 
     def get_best_bid(self) -> Optional[Decimal]:
@@ -163,7 +198,8 @@ class OrderBook:
     @staticmethod
     def _prepare_quote_types(quote: dict[str, Any]) -> None:
         quote["quantity"] = Decimal(str(quote["quantity"]))
-        quote["price"] = Decimal(str(quote["price"]))
+        if quote["type"] == ORDER_TYPE_LIMIT:
+            quote["price"] = Decimal(str(quote["price"]))
 
     def _update_timestamp(self, data: dict[str, Any], from_data: bool) -> None:
         if from_data:
@@ -306,10 +342,13 @@ class OrderBook:
         head_order: Any,
         new_book_quantity: Optional[Decimal],
     ) -> None:
+        order_tree = self._get_order_tree(side)
         if new_book_quantity is not None:
+            old_qty = head_order.quantity
             head_order.update_quantity(new_book_quantity, head_order.timestamp)
+            # Adjust global tree volume by the traded amount
+            order_tree._volume -= old_qty - new_book_quantity  # type: ignore[attr-defined]
         else:
-            order_tree = self._get_order_tree(side)
             order_tree.remove_order_by_id(head_order.order_id)
 
     def _create_transaction_record(
@@ -333,11 +372,11 @@ class OrderBook:
                 "wage": head_order.wage,
             },
             "party2": {
-                "trade_id": data["trade_id"],
+                "trade_id": data.get("trade_id", str(data["order_id"])),
                 "side": self._get_opposite_side(side),
                 "order_id": data["order_id"],
                 "new_book_quantity": None,
-                "wage": data["wage"],
+                "wage": data.get("wage"),
             },
         }
 

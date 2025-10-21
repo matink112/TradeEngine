@@ -1,6 +1,6 @@
 from typing import Optional
 
-from order import Order
+from src.orderbook.order import Order
 
 
 class OrderList:
@@ -52,10 +52,17 @@ class OrderList:
         """Remove order from the list and relink neighbors."""
         self._update_metrics_on_remove(order)
 
+        # If now empty, clear head/tail and return
         if self.is_empty():
+            self.head_order = None
+            self.tail_order = None
             return
 
         self._relink_after_removal(order)
+
+    # Alias used by OrderTree
+    def remove_order(self, order: Order) -> None:
+        self.remove(order)
 
     def move_to_tail(self, order: Order) -> None:
         """Move order to end of list (loses time priority)."""
@@ -76,7 +83,7 @@ class OrderList:
         """Append order to the end of the list."""
         order.prev_order = self.tail_order
         order.next_order = None
-        self.tail_order.next_order = order
+        self.tail_order.next_order = order  # type: ignore[union-attr]
         self.tail_order = order
 
     def _update_metrics_on_add(self, order: Order) -> None:
@@ -121,17 +128,17 @@ class OrderList:
     @staticmethod
     def _link_neighbors(order: Order) -> None:
         """Link the neighbors of an order together."""
-        order.next_order.prev_order = order.prev_order
-        order.prev_order.next_order = order.next_order
+        order.next_order.prev_order = order.prev_order  # type: ignore[union-attr]
+        order.prev_order.next_order = order.next_order  # type: ignore[union-attr]
 
     def _remove_tail_order(self, order: Order) -> None:
         """Remove order from tail position."""
-        order.prev_order.next_order = None
+        order.prev_order.next_order = None  # type: ignore[union-attr]
         self.tail_order = order.prev_order
 
     def _remove_head_order(self, order: Order) -> None:
         """Remove order from head position."""
-        order.next_order.prev_order = None
+        order.next_order.prev_order = None  # type: ignore[union-attr]
         self.head_order = order.next_order
 
     def _unlink_from_current_position(self, order: Order) -> None:

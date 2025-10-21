@@ -1,68 +1,80 @@
-# LimitOrderBook Trading Engine
+# TradeEngine (FastAPI Limit Order Book)
 
-A Django-based backend engine for managing a limit order book, designed for algorithmic trading platforms or as a backend for exchanges. It supports order matching, trade recording, and candlestick (K-line) chart generation.
+In-memory limit order book with a lightweight REST API for experimenting with order matching, trade event capture, and simple market analytics.
 
-## Features
-- Limit and market order matching
-- Trade recording and OHLC data extraction
-- K-line (candlestick) chart generation using pandas and matplotlib
-- Django admin interface for management
+## Key Features
+- Limit & market orders (bid / ask)
+- Price/time priority matching (FIFO within price level)
+- Trade recording (price, volume, side) with pandas
+- Basic analytics: OHLC sampling, percentage changes, 24h synthetic kline export
+- Clean FastAPI endpoints for CRUD + summary
+- Ready for extension (multi-market, persistence, auth)
 
-## Requirements
-- Python 3.8+
-- Django 4.0.6
-- Django REST Framework
-- pandas
-- matplotlib
-- python-dotenv
+## Technology Stack
+Python 3.13+, FastAPI, Pydantic, sortedcontainers, pandas, matplotlib, uvicorn, pytest.
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone <repo-url>
-   cd TradeEngine
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set up environment variables (optional):
-   - Create a `.env` file in the project root if needed.
-4. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
-5. Start the development server:
-   ```bash
-   python manage.py runserver
-   ```
+## Quick Start
+```bash
+# Install (editable for development)
+pip install -e .
 
-## Usage
-- Access the Django admin interface at `http://localhost:8000/admin/`.
-- Core trading logic is implemented in `apps/orderbook/`.
-- Trades and order book data are managed in-memory and can be visualized as K-line charts.
+# Run API
+uvicorn main:app --reload
 
-## Project Structure
-```
-TradeEngine/
-├── apps/
-│   └── orderbook/
-│       ├── orderbook.py      # Main order book logic
-│       ├── order.py         # Order data structure
-│       ├── trade.py         # Trade recording and charting
-│       └── ...
-├── LimitOrderBook/
-│   ├── settings.py          # Django settings
-│   ├── urls.py              # URL configuration
-│   └── ...
-├── manage.py                # Django entry point
-├── requirements.txt         # Python dependencies
-└── ...
+# Health check
+curl http://localhost:8000/health
+
+# Place limit order
+curl -X POST http://localhost:8000/api/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"side":"bid","type":"limit","quantity":"5","price":"100","trade_id":"ABC"}'
+
+# Place market order (no price)
+curl -X POST http://localhost:8000/api/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"side":"ask","type":"market","quantity":"2"}'
+
+# Summary
+curl http://localhost:8000/api/summary
 ```
 
-## Contributing
-Contributions are welcome! Please open issues or submit pull requests for improvements.
+## Project Layout
+```
+main.py               # FastAPI app & /health
+src/api/              # Routers + schemas
+src/orderbook/        # Matching engine + data structures
+conf.py               # RESULT_DIR constant
+llm-context.md        # High-signal context for LLMs
+```
+
+## Endpoints (Prefix /api)
+- POST /orders : process limit/market order -> trades + optional resting order
+- GET /orders/{side} : list resting orders ("bid" or "ask")
+- GET /orders/{side}/{order_id} : fetch single order
+- PATCH /orders/{side}/{order_id} : modify quantity/price
+- DELETE /orders/{side}/{order_id} : cancel
+- GET /summary : best bid/ask + volumes + time
+- GET /health (root) : service status
+
+## Testing
+```bash
+pytest -q
+```
+
+## LLM Usage
+See `llm-context.md` for authoritative architectural, data model, and reasoning guidance when generating code or answering questions.
+
+## Extensibility Ideas
+- Persistence layer (database or event sourcing)
+- Multi-market registry & per-symbol isolation
+- Authentication / user attribution via trade_id
+- Advanced analytics (VWAP, depth snapshots, latency metrics)
+
+## Notes
+- All state is in memory; restart clears book & trades.
+- Decimal logic retained for matching precision; analytics cast to float for pandas.
+- Synthetic zero trade row exists (TODO removal) to avoid empty DataFrame edge cases.
 
 ## License
-This project does not specify a license. Please add one if needed.
+No license specified. Add one before external distribution.
 
