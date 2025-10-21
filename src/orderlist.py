@@ -1,92 +1,152 @@
+from typing import Optional
+
+from order import Order
+
+
 class OrderList:
     """
-    A doubly linked list of Orders. Used to iterate through Orders when
-    a price match is found. Each OrderList is associated with a single
-    price. Since a single price match can have more quantity than a single
-    Order, we may need multiple Orders to full fill a transaction. The
-    OrderList makes this easy to do. OrderList is naturally arranged by time.
-    Orders at the front of the list have priority.
+    Doubly linked list of Orders organized by time priority.
+
+    Orders at the head have the highest priority (earliest timestamp).
+    Used for matching orders at a specific price level.
     """
 
-    def __init__(self):
-        self.head_order = None
-        self.tail_order = None
-        self.length = 0
-        self.volume = 0  # sum of Order quantity in the list
-        self.last = None  # helper for iterating
+    def __init__(self) -> None:
+        self.head_order: Optional[Order] = None
+        self.tail_order: Optional[Order] = None
+        self.length: int = 0
+        self.volume: int = 0
+        self._current: Optional[Order] = None
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.length
 
     def __iter__(self):
-        self.last = self.head_order
+        self._current = self.head_order
         return self
 
-    def __next__(self):
-        """
-        Get the next order in the list.
-
-        Set self.last as the next order. If there is no next order, stop
-        iterating through list.
-        """
-        if self.last is None:
+    def __next__(self) -> Order:
+        if self._current is None:
             raise StopIteration
-        else:
-            value = self.last
-            self.last = self.last.next_order
-            return value
 
-    def get_head_order(self):
+        current_order = self._current
+        self._current = self._current.next_order
+        return current_order
+
+    def get_head_order(self) -> Optional[Order]:
         return self.head_order
 
-    def append_order(self, order):
-        if len(self) == 0:
-            order.next_order = order.prev_order = None
-            self.head_order = self.tail_order = order
+    def is_empty(self) -> bool:
+        return self.length == 0
+
+    def append_order(self, order: Order) -> None:
+        """Add order to the end of the list (lowest priority)."""
+        if self.is_empty():
+            self._set_as_only_order(order)
         else:
-            order.prev_order = self.tail_order
-            order.next_order = None
-            self.tail_order.next_order = self.tail_order = order
+            self._append_to_tail(order)
+
+        self._update_metrics_on_add(order)
+
+    def remove(self, order: Order) -> None:
+        """Remove order from the list and relink neighbors."""
+        self._update_metrics_on_remove(order)
+
+        if self.is_empty():
+            return
+
+        self._relink_after_removal(order)
+
+    def move_to_tail(self, order: Order) -> None:
+        """Move order to end of list (loses time priority)."""
+        if self._is_only_order(order):
+            return
+
+        self._unlink_from_current_position(order)
+        self._append_to_tail(order)
+
+    def _set_as_only_order(self, order: Order) -> None:
+        """Initialize list with a single order."""
+        order.next_order = None
+        order.prev_order = None
+        self.head_order = order
+        self.tail_order = order
+
+    def _append_to_tail(self, order: Order) -> None:
+        """Append order to the end of the list."""
+        order.prev_order = self.tail_order
+        order.next_order = None
+        self.tail_order.next_order = order
+        self.tail_order = order
+
+    def _update_metrics_on_add(self, order: Order) -> None:
+        """Update length and volume when adding order."""
         self.length += 1
         self.volume += order.quantity
 
-    def remove_order(self, order):
+    def _update_metrics_on_remove(self, order: Order) -> None:
+        """Update length and volume when removing order."""
         self.volume -= order.quantity
         self.length -= 1
-        if len(self) != 0:
-            # remove and relink orders
-            next_order, prev_order = order.next_order, order.prev_order
-            if next_order is not None and prev_order is not None:
-                next_order.prev_order, prev_order.next_order = prev_order, next_order
 
-            elif next_order is None:  # There is no next order
-                # The previous order becomes the last order in the OrderList after this Order is removed
-                prev_order.next_order, self.tail_order = None, prev_order
+    def _relink_after_removal(self, order: Order) -> None:
+        """Relink neighboring orders after removing an order."""
+        if self._is_middle_order(order):
+            self._link_neighbors(order)
+        elif self._is_tail_order(order):
+            self._remove_tail_order(order)
+        elif self._is_head_order(order):
+            self._remove_head_order(order)
 
-            elif prev_order is None:  # There is no previous order
-                # The next order becomes the first order in the OrderList after this Order is removed
-                next_order.prev_order, self.head_order = None, next_order
+    @staticmethod
+    def _is_middle_order(order: Order) -> bool:
+        """Check if order has both neighbors."""
+        return order.next_order is not None and order.prev_order is not None
 
-    def move_to_tail(self, order):
-        """
-        After updating the quantity of an existing Order, move it to the tail of the OrderList
-        Check to see that the quantity is larger than existing, update the quantities,
-        then move to tail to loss priority.
-        """
+    @staticmethod
+    def _is_tail_order(order: Order) -> bool:
+        """Check if order is at the tail."""
+        return order.next_order is None and order.prev_order is not None
 
-        if order.prev_order is not None:  # This Order is not the first Order in the OrderList
-            # Link the previous Order to the next Order, then move the Order to tail
-            order.prev_order.next_order = order.next_order
-        else:  # This Order is the first Order in the OrderList
-            self.head_order = order.next_order  # Make next order the first
+    @staticmethod
+    def _is_head_order(order: Order) -> bool:
+        """Check if order is at the head."""
+        return order.prev_order is None and order.next_order is not None
 
+    @staticmethod
+    def _is_only_order(order: Order) -> bool:
+        """Check if this is the only order in the list."""
+        return order.prev_order is None and order.next_order is None
+
+    @staticmethod
+    def _link_neighbors(order: Order) -> None:
+        """Link the neighbors of an order together."""
         order.next_order.prev_order = order.prev_order
+        order.prev_order.next_order = order.next_order
 
-        order.prev_order = self.tail_order
-        order.next_order = None
+    def _remove_tail_order(self, order: Order) -> None:
+        """Remove order from tail position."""
+        order.prev_order.next_order = None
+        self.tail_order = order.prev_order
 
-        # Move Order to the last position. Link up the previous last position Order.
-        self.tail_order.next_order = self.tail_order = order
+    def _remove_head_order(self, order: Order) -> None:
+        """Remove order from head position."""
+        order.next_order.prev_order = None
+        self.head_order = order.next_order
 
-    def __str__(self):
-        return ', '.join(f'{order.order_id} /{order.quantity}/ {order.price} ' for order in self)
+    def _unlink_from_current_position(self, order: Order) -> None:
+        """Remove order from its current position without updating metrics."""
+        if order.prev_order is not None:
+            order.prev_order.next_order = order.next_order
+        else:
+            self.head_order = order.next_order
+
+        if order.next_order is not None:
+            order.next_order.prev_order = order.prev_order
+
+    def __str__(self) -> str:
+        order_strings = [
+            f'{order.order_id}/{order.quantity}/{order.price}'
+            for order in self
+        ]
+        return ', '.join(order_strings)
