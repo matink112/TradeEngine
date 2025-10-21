@@ -10,9 +10,7 @@ Tests cover:
 - Edge cases and error conditions
 """
 
-import pytest
 from decimal import Decimal
-from unittest.mock import Mock, MagicMock
 from src.orderbook.order import Order
 from src.orderbook.orderlist import OrderList
 
@@ -27,7 +25,7 @@ class TestOrderInitialization:
             "timestamp": 1234567890,
             "quantity": "100.5",
             "price": "50.25",
-            "order_id": 42
+            "order_id": 42,
         }
         order = Order(data, order_list)
 
@@ -47,7 +45,7 @@ class TestOrderInitialization:
             "quantity": "100",
             "price": "50",
             "order_id": 42,
-            "trade_id": "TRADE-XYZ-123"
+            "trade_id": "TRADE-XYZ-123",
         }
         order = Order(data, order_list)
 
@@ -62,7 +60,7 @@ class TestOrderInitialization:
             "quantity": "100",
             "price": "50",
             "order_id": 42,
-            "wage": {"type": "maker", "fee": "0.1"}
+            "wage": {"type": "maker", "fee": "0.1"},
         }
         order = Order(data, order_list)
 
@@ -75,7 +73,7 @@ class TestOrderInitialization:
             "timestamp": "1234567890",
             "quantity": "100",
             "price": "50",
-            "order_id": "99"
+            "order_id": "99",
         }
         order = Order(data, order_list)
 
@@ -87,12 +85,7 @@ class TestOrderInitialization:
     def test_initialization_with_integer_quantities(self):
         """Test that integer quantities are converted to Decimal."""
         order_list = OrderList()
-        data = {
-            "timestamp": 1234567890,
-            "quantity": 100,
-            "price": 50,
-            "order_id": 42
-        }
+        data = {"timestamp": 1234567890, "quantity": 100, "price": 50, "order_id": 42}
         order = Order(data, order_list)
 
         assert order.quantity == Decimal("100")
@@ -107,7 +100,7 @@ class TestOrderInitialization:
             "timestamp": 1234567890,
             "quantity": "100",
             "price": "50",
-            "order_id": 42
+            "order_id": 42,
         }
         order = Order(data, order_list)
 
@@ -123,7 +116,7 @@ class TestOrderInitialization:
             "timestamp": 1234567890,
             "quantity": Decimal("100.123"),
             "price": Decimal("50.456"),
-            "order_id": 42
+            "order_id": 42,
         }
         order = Order(data, order_list)
 
@@ -133,12 +126,7 @@ class TestOrderInitialization:
     def test_initialization_with_zero_values(self):
         """Test creating an order with zero timestamp, quantity, and price."""
         order_list = OrderList()
-        data = {
-            "timestamp": 0,
-            "quantity": "0",
-            "price": "0",
-            "order_id": 0
-        }
+        data = {"timestamp": 0, "quantity": "0", "price": "0", "order_id": 0}
         order = Order(data, order_list)
 
         assert order.timestamp == 0
@@ -153,7 +141,7 @@ class TestOrderInitialization:
             "timestamp": 9999999999999,
             "quantity": "999999999999.999999",
             "price": "888888888888.888888",
-            "order_id": 999999999
+            "order_id": 999999999,
         }
         order = Order(data, order_list)
 
@@ -168,8 +156,14 @@ class TestOrderPropertyAccessors:
     def test_next_order_getter(self):
         """Test getting next_order property."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order1._next = order2
         assert order1.next_order is order2
@@ -177,8 +171,14 @@ class TestOrderPropertyAccessors:
     def test_next_order_setter(self):
         """Test setting next_order property."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order1.next_order = order2
         assert order1._next is order2
@@ -187,8 +187,14 @@ class TestOrderPropertyAccessors:
     def test_prev_order_getter(self):
         """Test getting prev_order property."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order2._prev = order1
         assert order2.prev_order is order1
@@ -196,8 +202,14 @@ class TestOrderPropertyAccessors:
     def test_prev_order_setter(self):
         """Test setting prev_order property."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order2.prev_order = order1
         assert order2._prev is order1
@@ -206,8 +218,14 @@ class TestOrderPropertyAccessors:
     def test_next_property_getter(self):
         """Test getting next property (legacy API)."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order1._next = order2
         assert order1.next is order2
@@ -215,8 +233,14 @@ class TestOrderPropertyAccessors:
     def test_next_property_setter(self):
         """Test setting next property (legacy API)."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order1.next = order2
         assert order1._next is order2
@@ -225,8 +249,14 @@ class TestOrderPropertyAccessors:
     def test_prev_property_getter(self):
         """Test getting prev property (legacy API)."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order2._prev = order1
         assert order2.prev is order1
@@ -234,8 +264,14 @@ class TestOrderPropertyAccessors:
     def test_prev_property_setter(self):
         """Test setting prev property (legacy API)."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order2.prev = order1
         assert order2._prev is order1
@@ -244,8 +280,14 @@ class TestOrderPropertyAccessors:
     def test_properties_can_be_set_to_none(self):
         """Test that all linked list properties can be set to None."""
         order_list = OrderList()
-        order = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order.next_order = order2
         order.next_order = None
@@ -258,8 +300,14 @@ class TestOrderPropertyAccessors:
     def test_next_and_next_order_are_synchronized(self):
         """Test that next and next_order properties access the same underlying attribute."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order1.next = order2
         assert order1.next_order is order2
@@ -270,8 +318,14 @@ class TestOrderPropertyAccessors:
     def test_prev_and_prev_order_are_synchronized(self):
         """Test that prev and prev_order properties access the same underlying attribute."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1, "quantity": "10", "price": "100", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2, "quantity": "10", "price": "100", "order_id": 2},
+            order_list,
+        )
 
         order2.prev = order1
         assert order2.prev_order is order1
@@ -286,7 +340,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_decrease_no_move(self):
         """Test decreasing quantity does not move order in list."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         initial_volume = order_list.volume
@@ -299,8 +356,14 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_increase_when_tail(self):
         """Test increasing quantity when order is tail does not move it."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
         order_list.append_order(order1)
         order_list.append_order(order2)
 
@@ -316,9 +379,18 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_increase_when_not_tail_moves_to_tail(self):
         """Test increasing quantity when not tail moves order to tail."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
-        order3 = Order({"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
+        order3 = Order(
+            {"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3},
+            order_list,
+        )
 
         order_list.append_order(order1)
         order_list.append_order(order2)
@@ -339,7 +411,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_same_quantity_updates_timestamp(self):
         """Test updating with same quantity only updates timestamp."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         initial_volume = order_list.volume
@@ -352,7 +427,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_to_zero(self):
         """Test updating quantity to zero."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         order.update_quantity(Decimal("0"), 2000)
@@ -364,8 +442,14 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_small_increase_not_tail(self):
         """Test small quantity increase when not tail moves order."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
 
         order_list.append_order(order1)
         order_list.append_order(order2)
@@ -383,8 +467,14 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_volume_calculation(self):
         """Test that volume is correctly calculated during updates."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
 
         order_list.append_order(order1)
         order_list.append_order(order2)
@@ -400,7 +490,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_single_order_in_list(self):
         """Test updating quantity when order is the only one in list."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         # Single order is both head and tail
@@ -417,7 +510,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_with_negative_delta(self):
         """Test updating quantity with a decrease (negative delta)."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         order.update_quantity(Decimal("40"), 2000)
@@ -428,7 +524,10 @@ class TestOrderUpdateQuantity:
     def test_update_quantity_with_decimal_precision(self):
         """Test updating quantity with high decimal precision."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100.123456", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100.123456", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         order.update_quantity(Decimal("100.654321"), 2000)
@@ -445,13 +544,16 @@ class TestOrderToDictAndStringMethods:
     def test_to_dict_basic(self):
         """Test converting order to dictionary."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100.5",
-            "price": "50.25",
-            "order_id": 42,
-            "trade_id": "TRADE-123"
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1234567890,
+                "quantity": "100.5",
+                "price": "50.25",
+                "order_id": 42,
+                "trade_id": "TRADE-123",
+            },
+            order_list,
+        )
 
         result = order.to_dict()
 
@@ -465,13 +567,16 @@ class TestOrderToDictAndStringMethods:
         """Test to_dict includes wage field."""
         order_list = OrderList()
         wage_data = {"type": "maker", "fee": "0.1"}
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 42,
-            "wage": wage_data
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1234567890,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 42,
+                "wage": wage_data,
+            },
+            order_list,
+        )
 
         result = order.to_dict()
 
@@ -480,12 +585,10 @@ class TestOrderToDictAndStringMethods:
     def test_to_dict_without_wage(self):
         """Test to_dict with None wage."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 42
-        }, order_list)
+        order = Order(
+            {"timestamp": 1234567890, "quantity": "100", "price": "50", "order_id": 42},
+            order_list,
+        )
 
         result = order.to_dict()
 
@@ -494,12 +597,10 @@ class TestOrderToDictAndStringMethods:
     def test_to_dict_default_trade_id(self):
         """Test to_dict with default trade_id (from order_id)."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 99
-        }, order_list)
+        order = Order(
+            {"timestamp": 1234567890, "quantity": "100", "price": "50", "order_id": 99},
+            order_list,
+        )
 
         result = order.to_dict()
 
@@ -509,12 +610,15 @@ class TestOrderToDictAndStringMethods:
     def test_to_dict_preserves_decimal_string_format(self):
         """Test that to_dict converts Decimals back to strings."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100.123456789",
-            "price": "50.987654321",
-            "order_id": 42
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1234567890,
+                "quantity": "100.123456789",
+                "price": "50.987654321",
+                "order_id": 42,
+            },
+            order_list,
+        )
 
         result = order.to_dict()
 
@@ -526,13 +630,16 @@ class TestOrderToDictAndStringMethods:
     def test_str_representation(self):
         """Test string representation of order."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100.5",
-            "price": "50.25",
-            "order_id": 42,
-            "trade_id": "TRADE-XYZ"
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1234567890,
+                "quantity": "100.5",
+                "price": "50.25",
+                "order_id": 42,
+                "trade_id": "TRADE-XYZ",
+            },
+            order_list,
+        )
 
         result = str(order)
 
@@ -548,12 +655,10 @@ class TestOrderToDictAndStringMethods:
     def test_str_representation_with_default_trade_id(self):
         """Test string representation with default trade_id."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "10",
-            "price": "5",
-            "order_id": 123
-        }, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "10", "price": "5", "order_id": 123},
+            order_list,
+        )
 
         result = str(order)
 
@@ -565,13 +670,16 @@ class TestOrderToDictAndStringMethods:
     def test_str_representation_format(self):
         """Test exact format of string representation."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1234567890,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 42,
-            "trade_id": "T1"
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1234567890,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 42,
+                "trade_id": "T1",
+            },
+            order_list,
+        )
 
         result = str(order)
         expected = "quantity: 100 @ price: 50 / trade_id: T1 - time: 1234567890"
@@ -586,24 +694,25 @@ class TestOrderEdgeCases:
         """Test order with timestamp at maximum practical value."""
         order_list = OrderList()
         large_timestamp = 9999999999999
-        order = Order({
-            "timestamp": large_timestamp,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 1
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": large_timestamp,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 1,
+            },
+            order_list,
+        )
 
         assert order.timestamp == large_timestamp
 
     def test_order_with_negative_order_id(self):
         """Test order with negative order_id."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "100",
-            "price": "50",
-            "order_id": -1
-        }, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": -1},
+            order_list,
+        )
 
         assert order.order_id == -1
         assert order.trade_id == "-1"
@@ -611,12 +720,15 @@ class TestOrderEdgeCases:
     def test_order_with_very_small_decimal_values(self):
         """Test order with very small decimal quantities and prices."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "0.00000001",
-            "price": "0.00000001",
-            "order_id": 1
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "0.00000001",
+                "price": "0.00000001",
+                "order_id": 1,
+            },
+            order_list,
+        )
 
         assert order.quantity == Decimal("0.00000001")
         assert order.price == Decimal("0.00000001")
@@ -624,12 +736,10 @@ class TestOrderEdgeCases:
     def test_order_list_reference_is_maintained(self):
         """Test that order maintains reference to its order_list."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 1
-        }, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
 
         assert order.order_list is order_list
         # Reference should remain even after modifications
@@ -639,9 +749,18 @@ class TestOrderEdgeCases:
     def test_multiple_orders_same_orderlist(self):
         """Test multiple orders can reference the same order_list."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
-        order3 = Order({"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
+        order3 = Order(
+            {"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3},
+            order_list,
+        )
 
         assert order1.order_list is order_list
         assert order2.order_list is order_list
@@ -651,13 +770,16 @@ class TestOrderEdgeCases:
     def test_order_with_empty_string_trade_id(self):
         """Test order with empty string trade_id."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 42,
-            "trade_id": ""
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 42,
+                "trade_id": "",
+            },
+            order_list,
+        )
 
         assert order.trade_id == ""
 
@@ -666,43 +788,65 @@ class TestOrderEdgeCases:
         order_list = OrderList()
 
         # Dictionary wage
-        order1 = Order({
-            "timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1,
-            "wage": {"fee": 0.1}
-        }, order_list)
+        order1 = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 1,
+                "wage": {"fee": 0.1},
+            },
+            order_list,
+        )
         assert order1.wage == {"fee": 0.1}
 
         # String wage
-        order2 = Order({
-            "timestamp": 1000, "quantity": "100", "price": "50", "order_id": 2,
-            "wage": "fixed_fee"
-        }, order_list)
+        order2 = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 2,
+                "wage": "fixed_fee",
+            },
+            order_list,
+        )
         assert order2.wage == "fixed_fee"
 
         # Numeric wage
-        order3 = Order({
-            "timestamp": 1000, "quantity": "100", "price": "50", "order_id": 3,
-            "wage": 5.5
-        }, order_list)
+        order3 = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "100",
+                "price": "50",
+                "order_id": 3,
+                "wage": 5.5,
+            },
+            order_list,
+        )
         assert order3.wage == 5.5
 
         # None wage
-        order4 = Order({
-            "timestamp": 1000, "quantity": "100", "price": "50", "order_id": 4
-        }, order_list)
+        order4 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 4},
+            order_list,
+        )
         assert order4.wage is None
 
     def test_update_quantity_preserves_other_attributes(self):
         """Test that update_quantity doesn't modify other attributes."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "100",
-            "price": "50.25",
-            "order_id": 42,
-            "trade_id": "TRADE-123",
-            "wage": {"fee": 0.1}
-        }, order_list)
+        order = Order(
+            {
+                "timestamp": 1000,
+                "quantity": "100",
+                "price": "50.25",
+                "order_id": 42,
+                "trade_id": "TRADE-123",
+                "wage": {"fee": 0.1},
+            },
+            order_list,
+        )
         order_list.append_order(order)
 
         order.update_quantity(Decimal("75"), 2000)
@@ -717,9 +861,18 @@ class TestOrderEdgeCases:
     def test_order_linked_list_chain(self):
         """Test that orders can be properly chained in a linked list."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
-        order3 = Order({"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
+        order3 = Order(
+            {"timestamp": 3000, "quantity": "75", "price": "50", "order_id": 3},
+            order_list,
+        )
 
         # Manually chain them
         order1.next_order = order2
@@ -740,12 +893,10 @@ class TestOrderEdgeCases:
     def test_to_dict_immutability(self):
         """Test that to_dict returns a new dict each time."""
         order_list = OrderList()
-        order = Order({
-            "timestamp": 1000,
-            "quantity": "100",
-            "price": "50",
-            "order_id": 1
-        }, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
 
         dict1 = order.to_dict()
         dict2 = order.to_dict()
@@ -765,7 +916,10 @@ class TestOrderIntegrationWithOrderList:
     def test_order_appended_to_list_maintains_reference(self):
         """Test that appending order to list maintains proper references."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
 
         order_list.append_order(order)
 
@@ -776,8 +930,14 @@ class TestOrderIntegrationWithOrderList:
     def test_update_quantity_affects_orderlist_volume(self):
         """Test that quantity updates properly affect OrderList volume."""
         order_list = OrderList()
-        order1 = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
-        order2 = Order({"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2}, order_list)
+        order1 = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
+        order2 = Order(
+            {"timestamp": 2000, "quantity": "50", "price": "50", "order_id": 2},
+            order_list,
+        )
 
         order_list.append_order(order1)
         order_list.append_order(order2)
@@ -796,7 +956,10 @@ class TestOrderIntegrationWithOrderList:
     def test_order_removal_and_readd(self):
         """Test removing and re-adding an order."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
 
         order_list.append_order(order)
         assert order_list.length == 1
@@ -813,7 +976,10 @@ class TestOrderIntegrationWithOrderList:
     def test_multiple_quantity_updates_in_sequence(self):
         """Test multiple sequential quantity updates."""
         order_list = OrderList()
-        order = Order({"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1}, order_list)
+        order = Order(
+            {"timestamp": 1000, "quantity": "100", "price": "50", "order_id": 1},
+            order_list,
+        )
         order_list.append_order(order)
 
         # Multiple updates
@@ -830,4 +996,3 @@ class TestOrderIntegrationWithOrderList:
         assert order.timestamp == 1300
 
         assert order_list.volume == Decimal("85")
-

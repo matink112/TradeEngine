@@ -153,7 +153,6 @@ class OrderList:
 
     def __str__(self) -> str:
         order_strings = [
-            f'{order.order_id}/{order.quantity}/{order.price}'
-            for order in self
+            f"{order.order_id}/{order.quantity}/{order.price}" for order in self
         ]
-        return ', '.join(order_strings)
+        return ", ".join(order_strings)

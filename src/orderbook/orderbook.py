@@ -315,9 +315,7 @@ class OrderBook:
                 quantity_to_trade, head_order
             )
 
-            self._update_or_remove_order(
-                side, head_order, new_book_quantity
-            )
+            self._update_or_remove_order(side, head_order, new_book_quantity)
 
             transaction = self._create_transaction_record(
                 head_order, traded_quantity, new_book_quantity, side, data

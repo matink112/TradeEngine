@@ -13,7 +13,7 @@ Tests cover:
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -140,9 +140,7 @@ class TestOHLCData:
 
         # Use a range that includes the data
         ohlc = trade_df.get_ohlc_data(
-            base_time,
-            base_time + timedelta(hours=1, minutes=30),
-            "1h"
+            base_time, base_time + timedelta(hours=1, minutes=30), "1h"
         )
 
         assert not ohlc.empty
@@ -157,7 +155,9 @@ class TestOHLCData:
         base_time = pd.Timestamp("2025-01-01 00:00:00")
         future_time = base_time + timedelta(days=10)
 
-        ohlc = trade_df.get_ohlc_data(future_time, future_time + timedelta(hours=1), "1h")
+        ohlc = trade_df.get_ohlc_data(
+            future_time, future_time + timedelta(hours=1), "1h"
+        )
 
         # Should return empty or zero-filled data
         assert isinstance(ohlc, pd.DataFrame)
@@ -174,11 +174,7 @@ class TestOHLCData:
         # Test different intervals - use the last time in range
         last_time = base_time + timedelta(hours=23)
         for interval in ["1h", "6h", "1d"]:
-            ohlc = trade_df.get_ohlc_data(
-                base_time,
-                last_time,
-                interval
-            )
+            ohlc = trade_df.get_ohlc_data(base_time, last_time, interval)
             assert isinstance(ohlc, pd.DataFrame)
 
 
@@ -216,7 +212,7 @@ class TestKlineChartGeneration:
                     mock_clf.assert_called_once()
 
     @patch("src.orderbook.trade.plt.clf")
-    def test_save_24h_kline_png_with_insufficient_data(self, mock_clf):
+    def test_save_24h_kline_png_with_insufficient_data(self, _mock_clf):
         """Test kline chart generation with insufficient data (< 4 points)."""
         mock_book = Mock()
         mock_book.market_name = "BTC/USD"
@@ -241,7 +237,7 @@ class TestKlineChartGeneration:
                     mock_figure.savefig.assert_called_once()
 
     @patch("src.orderbook.trade.plt.clf")
-    def test_save_24h_kline_png_with_custom_color(self, mock_clf):
+    def test_save_24h_kline_png_with_custom_color(self, _mock_clf):
         """Test kline chart generation with custom color."""
         mock_book = Mock()
         mock_book.market_name = "ETH/USD"
@@ -535,10 +531,10 @@ class TestFileIO:
                 100.0 + i,
                 1.0 + i * 0.5,
                 "bid" if i % 2 == 0 else "ask",
-                base_time + timedelta(hours=i)
+                base_time + timedelta(hours=i),
             )
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             tmp_path = tmp.name
 
         try:
@@ -554,7 +550,7 @@ class TestFileIO:
             pd.testing.assert_frame_equal(
                 trade_df.df.astype(float),
                 new_trade_df.df.astype(float),
-                check_dtype=False
+                check_dtype=False,
             )
         finally:
             Path(tmp_path).unlink()
@@ -574,7 +570,7 @@ class TestFileIO:
         mock_book = Mock()
         trade_df = TradeDataFrame(mock_book)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             tmp_path = tmp.name
             # Create empty file
 
@@ -609,8 +605,8 @@ class TestSyntheticDataGeneration:
             [100.0, 101.0],
             index=[
                 pd.Timestamp("2025-01-01 00:00:00"),
-                pd.Timestamp("2025-01-01 01:00:00")
-            ]
+                pd.Timestamp("2025-01-01 01:00:00"),
+            ],
         )
 
         initial_len = len(prices)
@@ -718,7 +714,7 @@ class TestInterpolation:
 
         prices = pd.Series(
             [100.0, 110.0, 105.0, 115.0],
-            index=pd.date_range("2025-01-01", periods=4, freq="1h")
+            index=pd.date_range("2025-01-01", periods=4, freq="1h"),
         )
 
         interpolated = trade_df._interpolate_prices(prices)
@@ -732,8 +728,7 @@ class TestInterpolation:
         trade_df = TradeDataFrame(mock_book)
 
         prices = pd.Series(
-            [100.0, 101.0],
-            index=pd.date_range("2025-01-01", periods=2, freq="1h")
+            [100.0, 101.0], index=pd.date_range("2025-01-01", periods=2, freq="1h")
         )
 
         result = trade_df._ensure_sufficient_data(prices)

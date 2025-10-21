@@ -5,7 +5,9 @@ from src.orderbook.orderlist import OrderList
 
 
 def _make(order_list, oid, ts, qty="5", price="100"):
-    o = Order({"timestamp": ts, "quantity": qty, "price": price, "order_id": oid}, order_list)
+    o = Order(
+        {"timestamp": ts, "quantity": qty, "price": price, "order_id": oid}, order_list
+    )
     order_list.append_order(o)
     return o
 
@@ -74,4 +76,3 @@ def test_orderlist_only_order_remove():
     # volume decreased by quantity
     assert vol_before - Decimal("5") == ol.volume
     assert ol.head_order is None and ol.tail_order is None
-

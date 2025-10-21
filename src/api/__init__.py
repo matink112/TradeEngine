@@ -21,7 +21,9 @@ def get_book() -> OrderBook:
     return book
 
 
-@router.post("/orders", response_model=OrderProcessResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/orders", response_model=OrderProcessResult, status_code=status.HTTP_201_CREATED
+)
 def create_order(payload: OrderCreate, book: OrderBook = Depends(get_book)):
     data = payload.dict()
     try:
@@ -81,19 +83,23 @@ def get_order(side: str, order_id: int, book: OrderBook = Depends(get_book)):
 
 
 @router.patch("/orders/{side}/{order_id}", response_model=OrderOut)
-def modify_order(side: str, order_id: int, updates: OrderModify, book: OrderBook = Depends(get_book)):
+def modify_order(
+    side: str, order_id: int, updates: OrderModify, book: OrderBook = Depends(get_book)
+):
     try:
         existing = book.get_order(side, order_id)
     except (OrderTypeError, OrderNotFoundError) as e:
         code = 404 if isinstance(e, OrderNotFoundError) else 400
         raise HTTPException(status_code=code, detail=str(e)) from e
 
-    merged = updates.apply({
-        "order_id": existing["order_id"],
-        "side": side,
-        "quantity": existing["quantity"],
-        "price": existing["price"],
-    })
+    merged = updates.apply(
+        {
+            "order_id": existing["order_id"],
+            "side": side,
+            "quantity": existing["quantity"],
+            "price": existing["price"],
+        }
+    )
     try:
         book.modify_order(order_id, merged)
     except (OrderTypeError, OrderNotFoundError, QuantityError) as e:

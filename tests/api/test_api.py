@@ -2,13 +2,13 @@
 Comprehensive test suite for the FastAPI orderbook endpoints.
 Tests all scenarios, edge cases, and error conditions.
 """
+
 import pytest
 from decimal import Decimal
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
 from src.api import router, book
-from src.orderbook.orderbook import SIDE_BID, SIDE_ASK, ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ class TestCreateOrder:
             "quantity": "10.5",
             "price": "100.50",
             "trade_id": "TRADE001",
-            "wage": "trader1"
+            "wage": "trader1",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -76,7 +76,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "5.25",
             "price": "105.00",
-            "trade_id": "TRADE002"
+            "trade_id": "TRADE002",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -95,7 +95,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "10",
             "price": "100.00",
-            "trade_id": "ASK001"
+            "trade_id": "ASK001",
         }
         client.post("/api/orders", json=ask_payload)
 
@@ -105,7 +105,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "5",
             "price": "100.00",
-            "trade_id": "BID001"
+            "trade_id": "BID001",
         }
         response = client.post("/api/orders", json=bid_payload)
 
@@ -125,7 +125,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "5",
             "price": "100.00",
-            "trade_id": "ASK001"
+            "trade_id": "ASK001",
         }
         client.post("/api/orders", json=ask_payload)
 
@@ -135,7 +135,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "10",
             "price": "101.00",
-            "trade_id": "BID001"
+            "trade_id": "BID001",
         }
         response = client.post("/api/orders", json=bid_payload)
 
@@ -149,20 +149,23 @@ class TestCreateOrder:
     def test_create_market_order_bid_success(self, client):
         """Test creating a market bid order that executes against asks."""
         # Place resting ask orders
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "ASK001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "ASK001",
+            },
+        )
 
         # Place market bid order
         market_payload = {
             "side": "bid",
             "type": "market",
             "quantity": "5",
-            "trade_id": "MKT001"
+            "trade_id": "MKT001",
         }
         response = client.post("/api/orders", json=market_payload)
 
@@ -175,20 +178,23 @@ class TestCreateOrder:
     def test_create_market_order_ask_success(self, client):
         """Test creating a market ask order that executes against bids."""
         # Place resting bid order
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
 
         # Place market ask order
         market_payload = {
             "side": "ask",
             "type": "market",
             "quantity": "5",
-            "trade_id": "MKT001"
+            "trade_id": "MKT001",
         }
         response = client.post("/api/orders", json=market_payload)
 
@@ -204,7 +210,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "0",
             "price": "100.00",
-            "trade_id": "TRADE001"
+            "trade_id": "TRADE001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -218,7 +224,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "-5",
             "price": "100.00",
-            "trade_id": "TRADE001"
+            "trade_id": "TRADE001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -231,7 +237,7 @@ class TestCreateOrder:
             "type": "limit",
             "quantity": "10",
             "price": "100.00",
-            "trade_id": "TRADE001"
+            "trade_id": "TRADE001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -244,7 +250,7 @@ class TestCreateOrder:
             "type": "invalid",
             "quantity": "10",
             "price": "100.00",
-            "trade_id": "TRADE001"
+            "trade_id": "TRADE001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -256,7 +262,7 @@ class TestCreateOrder:
             "side": "bid",
             "type": "limit",
             "quantity": "10",
-            "trade_id": "TRADE001"
+            "trade_id": "TRADE001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -266,19 +272,22 @@ class TestCreateOrder:
     def test_create_market_order_without_price(self, client):
         """Test creating market order without price succeeds."""
         # Place resting ask
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "ASK001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "ASK001",
+            },
+        )
 
         payload = {
             "side": "bid",
             "type": "market",
             "quantity": "5",
-            "trade_id": "MKT001"
+            "trade_id": "MKT001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -286,10 +295,7 @@ class TestCreateOrder:
 
     def test_create_order_missing_required_fields(self, client):
         """Test creating order with missing required fields fails."""
-        payload = {
-            "side": "bid",
-            "type": "limit"
-        }
+        payload = {"side": "bid", "type": "limit"}
         response = client.post("/api/orders", json=payload)
 
         assert response.status_code == 422
@@ -302,7 +308,7 @@ class TestCreateOrder:
                 "type": "limit",
                 "quantity": "10",
                 "price": f"{100 + i}.00",
-                "trade_id": f"TRADE{i:03d}"
+                "trade_id": f"TRADE{i:03d}",
             }
             response = client.post("/api/orders", json=payload)
             assert response.status_code == 201
@@ -335,7 +341,7 @@ class TestListOrders:
                 "type": "limit",
                 "quantity": f"{10 + i}",
                 "price": f"{100 + i}.00",
-                "trade_id": f"BID{i:03d}"
+                "trade_id": f"BID{i:03d}",
             }
             client.post("/api/orders", json=payload)
 
@@ -359,7 +365,7 @@ class TestListOrders:
                 "type": "limit",
                 "quantity": f"{5 + i}",
                 "price": f"{105 + i}.00",
-                "trade_id": f"ASK{i:03d}"
+                "trade_id": f"ASK{i:03d}",
             }
             client.post("/api/orders", json=payload)
 
@@ -381,21 +387,27 @@ class TestListOrders:
     def test_list_orders_only_shows_correct_side(self, client):
         """Test that listing orders only returns the requested side."""
         # Create bid orders
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         # Create ask orders
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
 
         # Get bids
         response = client.get("/api/orders/bid")
@@ -416,13 +428,16 @@ class TestListOrders:
         # Create bid orders with different prices
         prices = ["100.00", "102.00", "101.00"]
         for i, price in enumerate(prices):
-            client.post("/api/orders", json={
-                "side": "bid",
-                "type": "limit",
-                "quantity": "10",
-                "price": price,
-                "trade_id": f"BID{i:03d}"
-            })
+            client.post(
+                "/api/orders",
+                json={
+                    "side": "bid",
+                    "type": "limit",
+                    "quantity": "10",
+                    "price": price,
+                    "trade_id": f"BID{i:03d}",
+                },
+            )
 
         response = client.get("/api/orders/bid")
         assert response.status_code == 200
@@ -437,14 +452,17 @@ class TestGetOrder:
     def test_get_bid_order_success(self, client):
         """Test getting a specific bid order."""
         # Create a bid order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001",
-            "wage": "trader1"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+                "wage": "trader1",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         response = client.get(f"/api/orders/bid/{order_id}")
@@ -461,13 +479,16 @@ class TestGetOrder:
     def test_get_ask_order_success(self, client):
         """Test getting a specific ask order."""
         # Create an ask order
-        create_response = client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "5",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "5",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         response = client.get(f"/api/orders/ask/{order_id}")
@@ -487,13 +508,16 @@ class TestGetOrder:
     def test_get_order_wrong_side(self, client):
         """Test getting order with wrong side returns 404."""
         # Create a bid order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Try to get it as an ask order
@@ -510,23 +534,29 @@ class TestGetOrder:
     def test_get_order_after_partial_fill(self, client):
         """Test getting order that has been partially filled shows remaining quantity."""
         # Create resting ask
-        create_response = client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "ASK001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "ASK001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Partially fill it with a bid
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "4",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "4",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
 
         # Get the original ask order
         response = client.get(f"/api/orders/ask/{order_id}")
@@ -542,19 +572,20 @@ class TestModifyOrder:
     def test_modify_order_quantity(self, client):
         """Test modifying an order's quantity."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Modify quantity
-        response = client.patch(f"/api/orders/bid/{order_id}", json={
-            "quantity": "15"
-        })
+        response = client.patch(f"/api/orders/bid/{order_id}", json={"quantity": "15"})
 
         assert response.status_code == 200
         order = response.json()
@@ -564,19 +595,20 @@ class TestModifyOrder:
     def test_modify_order_price(self, client):
         """Test modifying an order's price."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Modify price
-        response = client.patch(f"/api/orders/ask/{order_id}", json={
-            "price": "106.00"
-        })
+        response = client.patch(f"/api/orders/ask/{order_id}", json={"price": "106.00"})
 
         assert response.status_code == 200
         order = response.json()
@@ -586,20 +618,22 @@ class TestModifyOrder:
     def test_modify_order_both_quantity_and_price(self, client):
         """Test modifying both quantity and price."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Modify both
-        response = client.patch(f"/api/orders/bid/{order_id}", json={
-            "quantity": "20",
-            "price": "101.00"
-        })
+        response = client.patch(
+            f"/api/orders/bid/{order_id}", json={"quantity": "20", "price": "101.00"}
+        )
 
         assert response.status_code == 200
         order = response.json()
@@ -608,79 +642,83 @@ class TestModifyOrder:
 
     def test_modify_order_not_found(self, client):
         """Test modifying non-existent order returns 404."""
-        response = client.patch("/api/orders/bid/999", json={
-            "quantity": "15"
-        })
+        response = client.patch("/api/orders/bid/999", json={"quantity": "15"})
 
         assert response.status_code == 404
 
     def test_modify_order_wrong_side(self, client):
         """Test modifying order with wrong side returns 404."""
         # Create a bid order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Try to modify it as an ask order
-        response = client.patch(f"/api/orders/ask/{order_id}", json={
-            "quantity": "15"
-        })
+        response = client.patch(f"/api/orders/ask/{order_id}", json={"quantity": "15"})
 
         assert response.status_code == 404
 
     def test_modify_order_invalid_quantity_zero(self, client):
         """Test modifying order with zero quantity fails."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Try to modify with zero quantity
-        response = client.patch(f"/api/orders/bid/{order_id}", json={
-            "quantity": "0"
-        })
+        response = client.patch(f"/api/orders/bid/{order_id}", json={"quantity": "0"})
 
         assert response.status_code == 422  # Pydantic validation error
 
     def test_modify_order_invalid_quantity_negative(self, client):
         """Test modifying order with negative quantity fails."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Try to modify with negative quantity
-        response = client.patch(f"/api/orders/bid/{order_id}", json={
-            "quantity": "-5"
-        })
+        response = client.patch(f"/api/orders/bid/{order_id}", json={"quantity": "-5"})
 
         assert response.status_code == 422  # Pydantic validation
 
     def test_modify_order_empty_update(self, client):
         """Test modifying order with no changes."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Modify with no changes
@@ -698,13 +736,16 @@ class TestDeleteOrder:
     def test_delete_bid_order_success(self, client):
         """Test deleting a bid order."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Delete the order
@@ -719,13 +760,16 @@ class TestDeleteOrder:
     def test_delete_ask_order_success(self, client):
         """Test deleting an ask order."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Delete the order
@@ -742,13 +786,16 @@ class TestDeleteOrder:
     def test_delete_order_wrong_side(self, client):
         """Test deleting order with wrong side returns 404."""
         # Create a bid order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Try to delete it as an ask order
@@ -767,13 +814,16 @@ class TestDeleteOrder:
         # Create multiple orders
         order_ids = []
         for i in range(3):
-            create_response = client.post("/api/orders", json={
-                "side": "bid",
-                "type": "limit",
-                "quantity": "10",
-                "price": f"{100 + i}.00",
-                "trade_id": f"BID{i:03d}"
-            })
+            create_response = client.post(
+                "/api/orders",
+                json={
+                    "side": "bid",
+                    "type": "limit",
+                    "quantity": "10",
+                    "price": f"{100 + i}.00",
+                    "trade_id": f"BID{i:03d}",
+                },
+            )
             order_ids.append(create_response.json()["order"]["order_id"])
 
         # Delete middle order
@@ -792,13 +842,16 @@ class TestDeleteOrder:
     def test_delete_same_order_twice(self, client):
         """Test that deleting same order twice returns 404 on second attempt."""
         # Create an order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Delete first time
@@ -828,20 +881,26 @@ class TestSummary:
     def test_summary_with_bids_only(self, client):
         """Test summary with only bid orders."""
         # Create multiple bid orders
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "5",
-            "price": "99.00",
-            "trade_id": "BID002"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "5",
+                "price": "99.00",
+                "trade_id": "BID002",
+            },
+        )
 
         response = client.get("/api/summary")
 
@@ -855,20 +914,26 @@ class TestSummary:
     def test_summary_with_asks_only(self, client):
         """Test summary with only ask orders."""
         # Create multiple ask orders
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "8",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "12",
-            "price": "106.00",
-            "trade_id": "ASK002"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "8",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "12",
+                "price": "106.00",
+                "trade_id": "ASK002",
+            },
+        )
 
         response = client.get("/api/summary")
 
@@ -882,36 +947,48 @@ class TestSummary:
     def test_summary_with_both_sides(self, client):
         """Test summary with orders on both sides."""
         # Create bid orders
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "5",
-            "price": "99.00",
-            "trade_id": "BID002"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "5",
+                "price": "99.00",
+                "trade_id": "BID002",
+            },
+        )
 
         # Create ask orders
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "8",
-            "price": "105.00",
-            "trade_id": "ASK001"
-        })
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "12",
-            "price": "106.00",
-            "trade_id": "ASK002"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "8",
+                "price": "105.00",
+                "trade_id": "ASK001",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "12",
+                "price": "106.00",
+                "trade_id": "ASK002",
+            },
+        )
 
         response = client.get("/api/summary")
 
@@ -925,13 +1002,16 @@ class TestSummary:
     def test_summary_after_order_deletion(self, client):
         """Test summary updates correctly after order deletion."""
         # Create orders
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Check summary
@@ -951,13 +1031,16 @@ class TestSummary:
     def test_summary_after_trade(self, client):
         """Test summary updates correctly after trades."""
         # Create resting ask
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "ASK001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "ASK001",
+            },
+        )
 
         # Check initial summary
         response1 = client.get("/api/summary")
@@ -965,13 +1048,16 @@ class TestSummary:
         assert data1["ask_volume"] == 10
 
         # Execute trade
-        client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "4",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "4",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
 
         # Check summary after trade
         response2 = client.get("/api/summary")
@@ -985,13 +1071,16 @@ class TestEdgeCases:
     def test_concurrent_order_operations(self, client):
         """Test multiple operations on orders."""
         # Create order
-        create_response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        create_response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "10",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
         order_id = create_response.json()["order"]["order_id"]
 
         # Get order
@@ -999,9 +1088,9 @@ class TestEdgeCases:
         assert get_response.status_code == 200
 
         # Modify order
-        modify_response = client.patch(f"/api/orders/bid/{order_id}", json={
-            "quantity": "20"
-        })
+        modify_response = client.patch(
+            f"/api/orders/bid/{order_id}", json={"quantity": "20"}
+        )
         assert modify_response.status_code == 200
 
         # Verify modification
@@ -1023,7 +1112,7 @@ class TestEdgeCases:
             "type": "limit",
             "quantity": "999999999.123456",
             "price": "100.00",
-            "trade_id": "BID001"
+            "trade_id": "BID001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -1036,7 +1125,7 @@ class TestEdgeCases:
             "type": "limit",
             "quantity": "10",
             "price": "100.123456789",
-            "trade_id": "BID001"
+            "trade_id": "BID001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -1048,36 +1137,48 @@ class TestEdgeCases:
     def test_order_matching_priority(self, client):
         """Test that orders match with correct priority (price-time)."""
         # Create multiple ask orders at different prices
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "5",
-            "price": "102.00",
-            "trade_id": "ASK001"
-        })
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "5",
-            "price": "101.00",
-            "trade_id": "ASK002"
-        })
-        client.post("/api/orders", json={
-            "side": "ask",
-            "type": "limit",
-            "quantity": "5",
-            "price": "100.00",
-            "trade_id": "ASK003"
-        })
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "5",
+                "price": "102.00",
+                "trade_id": "ASK001",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "5",
+                "price": "101.00",
+                "trade_id": "ASK002",
+            },
+        )
+        client.post(
+            "/api/orders",
+            json={
+                "side": "ask",
+                "type": "limit",
+                "quantity": "5",
+                "price": "100.00",
+                "trade_id": "ASK003",
+            },
+        )
 
         # Create a bid that crosses - should match with best ask (100.00)
-        response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "5",
-            "price": "102.00",
-            "trade_id": "BID001"
-        })
+        response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "5",
+                "price": "102.00",
+                "trade_id": "BID001",
+            },
+        )
 
         assert response.status_code == 201
         trades = response.json()["trades"]
@@ -1088,22 +1189,28 @@ class TestEdgeCases:
         """Test single order matching against multiple resting orders."""
         # Create multiple small ask orders
         for i in range(3):
-            client.post("/api/orders", json={
-                "side": "ask",
-                "type": "limit",
-                "quantity": "3",
-                "price": "100.00",
-                "trade_id": f"ASK{i:03d}"
-            })
+            client.post(
+                "/api/orders",
+                json={
+                    "side": "ask",
+                    "type": "limit",
+                    "quantity": "3",
+                    "price": "100.00",
+                    "trade_id": f"ASK{i:03d}",
+                },
+            )
 
         # Create large bid that should match all
-        response = client.post("/api/orders", json={
-            "side": "bid",
-            "type": "limit",
-            "quantity": "9",
-            "price": "100.00",
-            "trade_id": "BID001"
-        })
+        response = client.post(
+            "/api/orders",
+            json={
+                "side": "bid",
+                "type": "limit",
+                "quantity": "9",
+                "price": "100.00",
+                "trade_id": "BID001",
+            },
+        )
 
         assert response.status_code == 201
         trades = response.json()["trades"]
@@ -1117,7 +1224,7 @@ class TestEdgeCases:
             "side": "bid",
             "type": "market",
             "quantity": "10",
-            "trade_id": "MKT001"
+            "trade_id": "MKT001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -1137,7 +1244,7 @@ class TestEdgeCases:
                 "type": "limit",
                 "quantity": str(i + 1),
                 "price": str(price),
-                "trade_id": f"ORDER{i:03d}"
+                "trade_id": f"ORDER{i:03d}",
             }
             response = client.post("/api/orders", json=payload)
             assert response.status_code == 201
@@ -1149,12 +1256,7 @@ class TestEdgeCases:
     def test_optional_fields(self, client):
         """Test that optional fields (trade_id, wage) are handled correctly."""
         # Create order without optional fields
-        payload = {
-            "side": "bid",
-            "type": "limit",
-            "quantity": "10",
-            "price": "100.00"
-        }
+        payload = {"side": "bid", "type": "limit", "quantity": "10", "price": "100.00"}
         response = client.post("/api/orders", json=payload)
 
         assert response.status_code == 201
@@ -1169,7 +1271,7 @@ class TestEdgeCases:
             "type": "limit",
             "quantity": "10.5",
             "price": "100.25",
-            "trade_id": "BID001"
+            "trade_id": "BID001",
         }
         response = client.post("/api/orders", json=payload)
 
@@ -1178,4 +1280,3 @@ class TestEdgeCases:
         # Verify values are correct
         assert Decimal(order["quantity"]) == Decimal("10.5")
         assert Decimal(order["price"]) == Decimal("100.25")
-
